@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+# Crea un progetto cliente da un repo template GitHub e sostituisce i placeholder.
+set -euo pipefail
+
+OWNER="livenbit"
+TEMPLATE="livenbit/template-saas"
+CLIENT=""
+SLUG=""
+VISIBILITY="--private"
+
+usage() {
+  cat <<'EOF'
+livenbit-new <slug> --client "Nome Cliente" [--template <repo>] [--public]
+
+  <slug>       nome repo/progetto, kebab-case (es. rossi-gestionale)
+  --client     ragione sociale del cliente, usata in README e CLAUDE.md
+  --template   repo template da usare (default: livenbit/template-saas)
+  --public     crea il repo pubblico (default: privato)
+
+Crea il repo da template, clona, sostituisce i placeholder, primo commit.
+Non scrive nessuna credenziale: genera .env.local con i soli nomi delle variabili.
+EOF
+}
+
+[ $# -ge 1 ] || { usage; exit 1; }
+SLUG="$1"; shift
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --client)   CLIENT="${2:-}"; shift 2 ;;
+    --template) TEMPLATE="${2:-}"; shift 2 ;;
+    --public)   VISIBILITY="--public"; shift ;;
+    -h|--help)  usage; exit 0 ;;
+    *) echo "Argomento sconosciuto: $1" >&2; usage; exit 1 ;;
+  esac
+done
+
+[ -n "$CLIENT" ] || { echo "Manca --client" >&2; exit 1; }
+
+if ! echo "$SLUG" | grep -qE '^[a-z][a-z0-9]*(-[a-z0-9]+)*$'; then
+  echo "Slug non valido: '$SLUG'. Usa kebab-case minuscolo." >&2
+  exit 1
+fi
+
+for cmd in gh git perl; do
+  command -v "$cmd" >/dev/null || { echo "Manca $cmd nel PATH" >&2; exit 1; }
+done
+
+gh auth status >/dev/null 2>&1 || { echo "gh non autenticato. Esegui: gh auth login" >&2; exit 1; }
+
+DEST="${LIVENBIT_PROJECTS_DIR:-$HOME/dev}/$SLUG"
+[ -e "$DEST" ] && { echo "Esiste già: $DEST" >&2; exit 1; }
+
+echo "-> creo $OWNER/$SLUG da $TEMPLATE"
+gh repo create "$OWNER/$SLUG" --template "$TEMPLATE" $VISIBILITY >/dev/null
+
+echo "-> clono in $DEST"
+for attempt in 1 2 3 4 5; do
+  if gh repo clone "$OWNER/$SLUG" "$DEST" >/dev/null 2>&1; then break; fi
+  sleep 3
+done
+[ -d "$DEST/.git" ] || { echo "Clone fallito. Il repo è stato creato: clonalo a mano." >&2; exit 1; }
+
+cd "$DEST"
+
+TITLE=$(echo "$SLUG" | perl -pe 's/(^|-)(\w)/($1 ? " " : "") . uc($2)/ge')
+
+git ls-files -z | xargs -0 perl -pi \
+  -e "s/__PROJECT_SLUG__/$SLUG/g;" \
+  -e "s/__PROJECT_NAME__/$TITLE/g;" \
+  -e "s/__CLIENT_NAME__/\Q$CLIENT\E/g;"
+
+for f in $(git ls-files | grep -E '(^|/)__PROJECT_SLUG__' || true); do
+  git mv "$f" "$(echo "$f" | sed "s/__PROJECT_SLUG__/$SLUG/g")"
+done
+
+if [ -f .env.example ]; then
+  grep -oE '^[A-Z_]+=' .env.example > .env.local
+  echo "-> .env.local generato con i soli nomi delle variabili. Compilalo a mano."
+fi
+
+git add -A
+git commit -q -m "scaffold LivenBit: $TITLE per $CLIENT" || true
+git push -q origin HEAD
+
+echo "OK: $DEST"
+echo "   Prossimo: apri il progetto e lancia /livenbit:nuovo-progetto"

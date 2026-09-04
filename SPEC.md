@@ -115,6 +115,10 @@ Proprietà di LivenBit SRLS. Uso interno.
 NOTA: il campo "version" è assente di proposito. Senza di esso la versione
 viene derivata dal commit SHA e ogni push arriva agli aggiornamenti. Non
 aggiungerlo.
+
+Conseguenza: `claude plugin validate --strict` esce 1 con il warning
+"version: No version specified". È atteso. Se un giorno il kit verrà
+distribuito fuori da LivenBit, si aggiunge `version` e si passa a --strict.
 === END FILE ===
 
 
@@ -410,7 +414,10 @@ Il lavoro è finito quando:
 - tutti i file sopra esistono ai percorsi indicati, con contenuto identico;
 - no-secrets.sh, typecheck.sh e livenbit-new hanno il permesso di esecuzione,
   e `git ls-files -s` riporta modo 100755 per tutti e tre;
-- `claude plugin validate ./plugins/livenbit --strict` esce 0;
+- `claude plugin validate ./plugins/livenbit` esce 0 (senza --strict);
+- l'unico warning ammesso è l'assenza di `version`, che è voluta: senza
+  quel campo la versione deriva dal commit SHA e ogni push arriva agli
+  aggiornamenti. Non usare --strict su questo plugin finché resta interno.
 - `claude plugin validate .` esce 0;
 - no-secrets.sh esce 2 su una finta chiave sk_live_ e su un percorso .env,
   ed esce 0 su contenuto pulito;
