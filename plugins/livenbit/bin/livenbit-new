@@ -65,10 +65,17 @@ cd "$DEST"
 
 TITLE=$(echo "$SLUG" | perl -pe 's/(^|-)(\w)/($1 ? " " : "") . uc($2)/ge')
 
-git ls-files -z | xargs -0 perl -pi \
-  -e "s/__PROJECT_SLUG__/$SLUG/g;" \
-  -e "s/__PROJECT_NAME__/$TITLE/g;" \
-  -e "s/__CLIENT_NAME__/\Q$CLIENT\E/g;"
+# I valori passano da variabili d'ambiente e non vengono interpolati dentro il
+# codice perl. Una ragione sociale puo' contenere spazi, slash, $ o @, che
+# interpolati verrebbero interpretati come sintassi. In particolare \Q...\E
+# neutralizza i metacaratteri di un PATTERN, non di una sostituzione: usato qui
+# escapava gli spazi e produceva "BZ\ Immobiliare".
+export LB_SLUG="$SLUG" LB_NAME="$TITLE" LB_CLIENT="$CLIENT"
+
+git ls-files -z | xargs -0 -r perl -pi \
+  -e 's/__PROJECT_SLUG__/$ENV{LB_SLUG}/g;' \
+  -e 's/__PROJECT_NAME__/$ENV{LB_NAME}/g;' \
+  -e 's/__CLIENT_NAME__/$ENV{LB_CLIENT}/g;'
 
 for f in $(git ls-files | grep -E '(^|/)__PROJECT_SLUG__' || true); do
   git mv "$f" "$(echo "$f" | sed "s/__PROJECT_SLUG__/$SLUG/g")"
