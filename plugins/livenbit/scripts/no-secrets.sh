@@ -10,6 +10,7 @@ BODY=$(echo "$INPUT" | jq -r '.tool_input.content // .tool_input.new_string // e
 FILE="${FILE//\\//}"
 
 case "$FILE" in
+  *.env.example|*.env.sample|*.env.template) ;;
   *.env|*.env.*|*/.git/*|*/id_rsa|*/id_ed25519|*.pem|*.p12)
     echo "Blocked: $FILE non si modifica da qui. Le credenziali stanno in variabili d'ambiente, mai nel repo." >&2
     exit 2
@@ -25,6 +26,10 @@ PATTERNS="$PATTERNS|-----BEGIN [A-Z ]*PRIVATE KEY-----"
 PATTERNS="$PATTERNS|ghp_[A-Za-z0-9]{20}"
 PATTERNS="$PATTERNS|github_pat_[A-Za-z0-9]"
 PATTERNS="$PATTERNS|AKIA[0-9A-Z]{16}"
+PATTERNS="$PATTERNS|sk-ant-[A-Za-z0-9_-]{10}"
+PATTERNS="$PATTERNS|sk-proj-[A-Za-z0-9_-]{10}"
+PATTERNS="$PATTERNS|AIza[0-9A-Za-z_-]{20}"
+PATTERNS="$PATTERNS|xox[baprs]-[0-9A-Za-z-]{10}"
 
 if echo "$BODY" | grep -qE "$PATTERNS"; then
   echo "Blocked: credenziale in chiaro rilevata in $FILE. Se è reale ruotala subito, poi leggila da process.env." >&2

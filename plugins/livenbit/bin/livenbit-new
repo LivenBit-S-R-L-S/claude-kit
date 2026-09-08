@@ -78,11 +78,14 @@ git ls-files -z | xargs -0 -r perl -pi \
   -e 's/__CLIENT_NAME__/$ENV{LB_CLIENT}/g;'
 
 for f in $(git ls-files | grep -E '(^|/)__PROJECT_SLUG__' || true); do
-  git mv "$f" "$(echo "$f" | sed "s/__PROJECT_SLUG__/$SLUG/g")"
+  dest="$(echo "$f" | sed "s/__PROJECT_SLUG__/$SLUG/g")"
+  mkdir -p "$(dirname "$dest")"
+  git mv "$f" "$dest"
 done
+find . -type d -empty -not -path "./.git/*" -delete 2>/dev/null || true
 
 if [ -f .env.example ]; then
-  grep -oE '^[A-Z_]+=' .env.example > .env.local
+  grep -oE '^[A-Z0-9_]+=' .env.example > .env.local
   echo "-> .env.local generato con i soli nomi delle variabili. Compilalo a mano."
 fi
 

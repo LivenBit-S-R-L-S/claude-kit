@@ -1,5 +1,9 @@
 # SPEC — LivenBit Claude Kit
 
+> Documento storico: descrive il kit come è stato creato. Da quel momento
+> il codice è stato corretto e la fonte di verità sono i file in
+> `plugins/livenbit/`, non questa specifica.
+
 Questo file è la specifica completa. Crea ogni file esattamente come indicato,
 con il percorso indicato. Non aggiungere file, campi o componenti non elencati
 qui. Non modificare i contenuti: se qualcosa ti sembra sbagliato, fermati e

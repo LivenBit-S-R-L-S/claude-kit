@@ -13,6 +13,7 @@ esac
 
 cd "${CLAUDE_PROJECT_DIR:-.}" || exit 0
 [ -f tsconfig.json ] || exit 0
+[ -x node_modules/.bin/tsc ] || exit 0
 
 OUT=$(npx --no-install tsc --noEmit 2>&1)
 if [ $? -ne 0 ]; then
