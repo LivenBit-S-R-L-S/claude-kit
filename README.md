@@ -5,7 +5,7 @@ Standard di sviluppo LivenBit distribuiti come plugin Claude Code.
 Contiene:
 - blocco delle credenziali in chiaro e typecheck automatico (hook)
 - agent di review sicurezza da invocare prima di ogni PR
-- skill per preventivi e per la personalizzazione di un progetto nuovo
+- skill per preventivi, contratti e personalizzazione di un progetto nuovo
 - comando `livenbit-new` per creare un progetto cliente da repo template
 
 ## Prerequisiti
@@ -46,6 +46,30 @@ Poi, dentro il progetto:
 
     /livenbit:nuovo-progetto   # intervista, schema, policy RLS, regole
     /livenbit:preventivo       # preventivo completo, non tocca il codice
+    /livenbit:contratto        # contratto + allegato dati, quando il cliente accetta
+
+I tre comandi sono in sequenza: il preventivo si salva in `preventivi/`, il
+contratto lo rilegge da li' e ne deriva perimetro, prezzo e milestone. Cosi'
+quanto quotato e quanto firmato non divergono.
+
+Il contratto esce in Markdown e in `.docx` pronto da mandare. La conversione
+usa uno script del plugin che si appoggia alla sola libreria standard di
+Python: nessuna dipendenza da installare.
+
+## Dove stanno i dati
+
+L'Allegato B sul trattamento dati non dichiara la localizzazione a memoria: la
+legge da `.claude/infra.json`, scritto da `/livenbit:nuovo-progetto` con la
+data del rilevamento. Se il file manca, ha piu' di sei mesi, o riporta una
+region fuori dall'Unione, il contratto **non scrive che i dati stanno in UE**:
+riporta cio' che risulta e te lo segnala.
+
+Per controllarlo a mano, dentro un progetto:
+
+    bash "$CLAUDE_PLUGIN_ROOT"/scripts/check-infra.sh .
+
+Netlify, Stripe e Resend sono societa' statunitensi: i dati transitano da loro
+anche con hosting europeo. L'allegato lo dichiara invece di negarlo.
 
 Prima di ogni PR, chiedi a Claude una review di sicurezza: l'agent
 `security-review` legge il diff e riporta solo ciò che è rotto.
