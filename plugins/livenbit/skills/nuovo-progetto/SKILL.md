@@ -26,7 +26,14 @@ Genera i tipi TypeScript dallo schema.
 Scrivi `.claude/rules/dominio.md` nel repo con: entità, ruoli, chi vede cosa. Sotto le 60 righe.
 Aggiorna il `CLAUDE.md` del repo con il nome del cliente, le entità e i comandi specifici. Non ripetere ciò che è già scritto nelle regole.
 
-## 4. Chiudi
+## 4. Registra dove stanno i dati
+Scrivi `.claude/infra.json` con i fatti, non le intenzioni: data del rilevamento, servizio e region della banca dati, servizio e region delle funzioni di hosting, e le societa' terze con cui transitano dati personali, ciascuna con la sede legale.
+
+Le region non sono deducibili dal repo: stanno nelle dashboard dei fornitori. Chiedile all'utente e scrivi cio' che ti risponde. Se non le sa, scrivi `null`: un dato mancante e' recuperabile, un dato inventato finisce dentro un contratto firmato.
+
+Serve alla skill `contratto`, che da questo file ricava l'Allegato B sul trattamento dati e si rifiuta di dichiarare l'hosting in UE se qui non risulta.
+
+## 5. Chiudi
 Elenca: cosa hai creato, cosa resta da fare a mano, quali variabili d'ambiente vanno compilate.
 Segnala esplicitamente ogni funzione che può diventare modulo riutilizzabile su altri clienti, prima che venga scritta su misura.
 
