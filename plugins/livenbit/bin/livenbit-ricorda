@@ -1,0 +1,199 @@
+#!/usr/bin/env python3
+"""Diario delle preferenze di lavoro LivenBit.
+
+Una voce per regola, con il contatore delle volte in cui e' riemersa: e'
+la ripetizione che distingue una preferenza da uno sfogo.
+
+Il file vive fuori dal plugin: `claude plugin marketplace update` ri-clona
+la cartella del plugin e cancellerebbe qualsiasi cosa ci fosse dentro.
+"""
+
+import argparse
+import json
+import os
+import re
+import sys
+from datetime import date
+
+TIPI = ("preferenza", "correzione", "rifiuto")
+
+# Stesse famiglie di pattern di no-secrets.sh: il diario non e' un posto
+# dove far finire una chiave per distrazione.
+SEGRETI = re.compile(
+    r"sk-ant-[A-Za-z0-9_-]{10}"
+    r"|sk-proj-[A-Za-z0-9_-]{10}"
+    r"|AKIA[0-9A-Z]{12}"
+    r"|AIza[0-9A-Za-z_-]{20}"
+    r"|xox[baprs]-[0-9A-Za-z-]{10}"
+    r"|-----BEGIN [A-Z ]*PRIVATE KEY-----"
+)
+
+
+def percorso():
+    base = os.environ.get("LIVENBIT_MEMORIA") or os.path.join(
+        os.path.expanduser("~"), ".livenbit"
+    )
+    return os.path.join(base, "osservazioni.jsonl")
+
+
+def leggi():
+    f = percorso()
+    if not os.path.exists(f):
+        return []
+    voci = []
+    with open(f, encoding="utf-8") as fh:
+        for n, riga in enumerate(fh, 1):
+            riga = riga.strip()
+            if not riga:
+                continue
+            try:
+                voci.append(json.loads(riga))
+            except json.JSONDecodeError:
+                print(f"attenzione: riga {n} illeggibile, la salto", file=sys.stderr)
+    return voci
+
+
+def salva(voci):
+    f = percorso()
+    os.makedirs(os.path.dirname(f), exist_ok=True)
+    tmp = f + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as fh:
+        for v in voci:
+            fh.write(json.dumps(v, ensure_ascii=False) + "\n")
+    os.replace(tmp, f)
+
+
+def normalizza(testo):
+    return " ".join(testo.lower().split())
+
+
+def trova(voci, skill, osservazione):
+    chiave = (skill, normalizza(osservazione))
+    for v in voci:
+        if (v.get("skill"), normalizza(v.get("osservazione", ""))) == chiave:
+            return v
+    return None
+
+
+def scrivi(args):
+    for campo, valore in (("osservazione", args.osservazione),
+                          ("citazione", args.citazione)):
+        if SEGRETI.search(valore):
+            print(f"rifiutato: --{campo} contiene qualcosa che somiglia a una credenziale.",
+                  file=sys.stderr)
+            return 2
+
+    oggi = date.today().isoformat()
+    progetto = os.path.basename(os.getcwd())
+    voci = leggi()
+    esistente = trova(voci, args.skill, args.osservazione)
+
+    if esistente:
+        esistente["occorrenze"] = esistente.get("occorrenze", 1) + 1
+        esistente["ultima_data"] = oggi
+        progetti = esistente.setdefault("progetti", [])
+        if progetto not in progetti:
+            progetti.append(progetto)
+        citazioni = esistente.setdefault("citazioni", [])
+        if args.citazione.strip() not in citazioni:
+            citazioni.append(args.citazione.strip())
+        # Una regola che riemerge dopo essere stata consolidata significa che
+        # la modifica alla skill non ha retto: torna in lista.
+        if esistente.get("consolidata"):
+            esistente["consolidata"] = False
+            nota = " (era gia' consolidata: la modifica non ha retto, torna da valutare)"
+        else:
+            nota = ""
+        salva(voci)
+        print(f"occorrenza {esistente['occorrenze']} di: {esistente['osservazione']}{nota}")
+        return 0
+
+    voci.append({
+        "prima_data": oggi,
+        "ultima_data": oggi,
+        "occorrenze": 1,
+        "progetti": [progetto],
+        "skill": args.skill,
+        "tipo": args.tipo,
+        "osservazione": args.osservazione.strip(),
+        "citazioni": [args.citazione.strip()],
+        "consolidata": False,
+    })
+    salva(voci)
+    print(f"registrata in {percorso()}: [{args.skill}] {args.osservazione.strip()}")
+    return 0
+
+
+def conta(solo_da_valutare=False):
+    voci = leggi()
+    if not voci:
+        print("diario vuoto: nessuna osservazione registrata.")
+        return 0
+
+    if solo_da_valutare:
+        voci = [v for v in voci if not v.get("consolidata")]
+        if not voci:
+            print("nessuna osservazione da valutare: sono tutte gia' consolidate.")
+            return 0
+
+    voci.sort(key=lambda v: (-v.get("occorrenze", 1), v.get("ultima_data", "")))
+    totale = sum(v.get("occorrenze", 1) for v in voci)
+    print(f"{len(voci)} regole distinte, {totale} occorrenze totali\n")
+    for v in voci:
+        stato = "consolidata" if v.get("consolidata") else "da valutare"
+        print(f"[{v.get('occorrenze', 1)}x] ({v.get('skill')}/{v.get('tipo')}) {v.get('osservazione')}")
+        print(f"      dal {v.get('prima_data')} al {v.get('ultima_data')} "
+              f"| progetti: {', '.join(v.get('progetti', []))} | {stato}")
+        for c in v.get("citazioni", []):
+            print(f"      detto: \"{c}\"")
+        print()
+    return 0
+
+
+def segna(osservazione):
+    voci = leggi()
+    bersaglio = normalizza(osservazione)
+    toccate = 0
+    for v in voci:
+        if normalizza(v.get("osservazione", "")) == bersaglio and not v.get("consolidata"):
+            v["consolidata"] = True
+            toccate += 1
+    if not toccate:
+        print("nessuna osservazione corrispondente da segnare.", file=sys.stderr)
+        return 1
+    salva(voci)
+    print(f"segnate {toccate} regole come consolidate.")
+    return 0
+
+
+def main():
+    p = argparse.ArgumentParser(
+        prog="livenbit-ricorda",
+        description="Registra e rilegge le preferenze di lavoro LivenBit.",
+    )
+    p.add_argument("--skill", help="skill a cui si riferisce, o 'generale'")
+    p.add_argument("--tipo", choices=TIPI, help="natura dell'osservazione")
+    p.add_argument("--osservazione", help="la regola, all'imperativo, una frase")
+    p.add_argument("--citazione", help="le parole esatte di chi l'ha espressa")
+    p.add_argument("--conta", action="store_true",
+                   help="raggruppa e conta le regole registrate")
+    p.add_argument("--da-valutare", action="store_true",
+                   help="come --conta, ma salta quelle gia' consolidate")
+    p.add_argument("--segna-consolidata", metavar="OSSERVAZIONE",
+                   help="marca come consolidata la regola indicata")
+    args = p.parse_args()
+
+    if args.conta or args.da_valutare:
+        return conta(solo_da_valutare=args.da_valutare)
+    if args.segna_consolidata:
+        return segna(args.segna_consolidata)
+
+    mancanti = [n for n in ("skill", "tipo", "osservazione", "citazione")
+                if not getattr(args, n)]
+    if mancanti:
+        p.error("mancano: " + ", ".join("--" + m for m in mancanti))
+    return scrivi(args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
