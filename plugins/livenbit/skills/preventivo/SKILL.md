@@ -26,7 +26,13 @@ Struttura obbligatoria:
 
 Chiudi con: verifica margine. Ore per costo orario interno contro il prezzo. Se il margine è sotto soglia, dillo nella prima riga del blocco.
 
+## Consegna
+
+Scrivi il preventivo in `preventivi/<slug>-<AAAA-MM-GG>.md` dentro il repo del progetto, oltre a mostrarlo in risposta. Non e' burocrazia: la skill `contratto` legge quel file, e cosi' quanto quotato e quanto firmato non possono divergere. Ti resta anche lo storico delle revisioni.
+
 Clausole da riportare in ogni bozza contrattuale:
 - Il codice prodotto resta di proprietà di LivenBit. Al cliente è concessa licenza d'uso. La cessione della proprietà intellettuale è possibile solo a pagamento separato e a prezzo pieno.
 - Ogni richiesta fuori dallo scope elencato genera un nuovo preventivo, anche per interventi di due ore.
 - Il GDPR è una voce di costo del progetto: informativa, base giuridica, minimizzazione, registro trattamenti.
+
+Quando il cliente accetta, il contratto si genera con `/livenbit:contratto`.
