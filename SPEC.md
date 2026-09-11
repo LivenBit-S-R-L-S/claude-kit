@@ -428,5 +428,7 @@ Il lavoro è finito quando:
 - livenbit-new esce 1 con messaggio d'errore se invocato senza --client;
 - il branch è pushato.
 
-Il repo template `livenbit/template-saas` non esiste ancora: livenbit-new
-fallirà finché non verrà creato. È previsto e non è un errore da correggere qui.
+Il repo template `livenbit/template-saas` è stato creato il 4 settembre 2026:
+è privato, ha la spunta "Template repository" e livenbit-new funziona. Quando
+questa specifica è stata scritta non esisteva, e il fallimento di livenbit-new
+era previsto.
