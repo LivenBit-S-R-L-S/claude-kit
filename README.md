@@ -10,13 +10,13 @@ Contiene:
 
 ## Prerequisiti
 
-- accesso all'organizzazione `LivenBit-S-R-L-S` su GitHub: i repo sono privati
+- accesso all'organizzazione `livenbit` su GitHub: i repo sono privati
 - `gh` installato e autenticato: `gh auth login`
 - `git`, `perl` e Node 18 o superiore
 
 ## Installazione
 
-    claude plugin marketplace add LivenBit-S-R-L-S/claude-kit
+    claude plugin marketplace add livenbit/claude-kit
     claude plugin install livenbit@livenbit-kit
 
 Installare sempre a scope utente (il default). Mai `--scope project`: il
