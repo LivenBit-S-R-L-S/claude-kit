@@ -7,6 +7,7 @@ Contiene:
 - agent di review sicurezza da invocare prima di ogni PR
 - skill per preventivi, contratti e personalizzazione di un progetto nuovo
 - comando `livenbit-new` per creare un progetto cliente da repo template
+- diario delle preferenze di lavoro, che diventa modifiche alle skill
 
 ## Prerequisiti
 
@@ -55,6 +56,24 @@ quanto quotato e quanto firmato non divergono.
 Il contratto esce in Markdown e in `.docx` pronto da mandare. La conversione
 usa uno script del plugin che si appoggia alla sola libreria standard di
 Python: nessuna dipendenza da installare.
+
+## Come il kit impara
+
+C'e' una quarta skill, `memoria`, che non si invoca: si attiva da sola quando
+qualcuno dice come vuole che si lavori — "da ora in poi", "sempre", "mai" — o
+riscrive a mano l'output di una skill cambiando una regola. Registra la
+preferenza in `~/.livenbit/osservazioni.jsonl`, fuori dal plugin, perche' la
+cartella del plugin viene ri-clonata a ogni `marketplace update`.
+
+Il diario si rilegge cosi':
+
+    livenbit-ricorda --da-valutare
+
+Quando una regola si ripete tre volte, o viene dichiarata come regola
+generale, dentro un clone di questo repo puoi chiedere di consolidarla: la
+skill propone le modifiche alle altre skill come diff, una per una, e le
+applica solo su approvazione. Prezzi e clausole contrattuali non si toccano
+mai senza un si' detto su quella riga.
 
 ## Dove stanno i dati
 
